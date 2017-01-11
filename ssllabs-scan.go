@@ -1019,6 +1019,12 @@ func main() {
 				return
 			}
 
+            fo, err := os.Create("/tmp/ssllabs-scan-results.json")
+            if err != nil {
+                panic(err)
+            }
+            defer fo.Close()
+
 			if *conf_grade {
 				// Just the grade(s). We use flatten and RAW
 				/*
@@ -1051,7 +1057,8 @@ func main() {
 						}
 					}
 					if grade != "" && name != "" {
-						fmt.Println(name + ": " + grade)
+						//fmt.Println(name + ": " + grade)
+						fmt.Fprintf(fo, name + ": " + grade)
 					}
 				}
 			} else if *conf_json_flat {
@@ -1068,16 +1075,20 @@ func main() {
 			} else {
 				// Raw (non-Go-mangled) JSON output
 
-				fmt.Println("[")
+				//fmt.Println("[")
+				fmt.Fprintf(fo, "[")
 				for i := range manager.results.responses {
 					results := manager.results.responses[i]
 
 					if i > 0 {
-						fmt.Println(",")
+						//fmt.Println(",")
+						fmt.Fprintf(fo, ",")
 					}
-					fmt.Println(results)
+					//fmt.Println(results)
+					fmt.Fprintf(fo, results)
 				}
-				fmt.Println("]")
+				//fmt.Println("]")
+				fmt.Fprintf(fo, "]")
 			}
 
 			if err != nil {
