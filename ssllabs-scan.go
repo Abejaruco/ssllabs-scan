@@ -721,6 +721,14 @@ func (manager *Manager) run() {
 		}
 	}
 
+	fo, err := os.Create("/tmp/ssllabs-scan-results.json")
+	if err != nil {
+		panic(err)
+	}
+	defer fo.Close()
+	fmt.Fprintf(fo, "[")
+	var first = true
+
 	for {
 		select {
 		// Handle assessment events (e.g., starting and finishing).
@@ -764,7 +772,14 @@ func (manager *Manager) run() {
 				activeAssessments--
 
 				manager.results.reports = append(manager.results.reports, *e.report)
-				manager.results.responses = append(manager.results.responses, e.report.rawJSON)
+				//manager.results.responses = append(manager.results.responses, e.report.rawJSON)
+				if first {
+					fmt.Fprintf(fo, e.report.rawJSON)
+					first = false
+				} else {
+					fmt.Fprintf(fo, "," + e.report.rawJSON)
+				}
+
 
 				if logLevel >= LOG_DEBUG {
 					log.Printf("[DEBUG] Active assessments: %v (more: %v)", activeAssessments, moreAssessments)
@@ -773,6 +788,7 @@ func (manager *Manager) run() {
 
 			// Are we done?
 			if (activeAssessments == 0) && (moreAssessments == false) {
+				fmt.Fprintf(fo, "]")
 				close(manager.FrontendEventChannel)
 				return
 			}
@@ -806,6 +822,8 @@ func (manager *Manager) run() {
 			break
 		}
 	}
+
+
 }
 
 func parseLogLevel(level string) int {
@@ -1008,22 +1026,19 @@ func main() {
 	hp := NewHostProvider(hostnames)
 	manager := NewManager(hp)
 
+
+
+
 	// Respond to events until all the work is done.
 	for {
 		_, running := <-manager.FrontendEventChannel
 		if running == false {
-			var results []byte
+			//var results []byte
 			var err error
 
 			if hp.StartingLen == 0 {
 				return
 			}
-
-            fo, err := os.Create("/tmp/ssllabs-scan-results.json")
-            if err != nil {
-                panic(err)
-            }
-            defer fo.Close()
 
 			if *conf_grade {
 				// Just the grade(s). We use flatten and RAW
@@ -1058,7 +1073,7 @@ func main() {
 					}
 					if grade != "" && name != "" {
 						//fmt.Println(name + ": " + grade)
-						fmt.Fprintf(fo, name + ": " + grade)
+						//fmt.Fprintf(fo, name + ": " + grade)
 					}
 				}
 			} else if *conf_json_flat {
@@ -1076,26 +1091,28 @@ func main() {
 				// Raw (non-Go-mangled) JSON output
 
 				//fmt.Println("[")
-				fmt.Fprintf(fo, "[")
+				//fmt.Fprintf(fo, "[")
 				for i := range manager.results.responses {
-					results := manager.results.responses[i]
+					//results := manager.results.responses[i]
 
 					if i > 0 {
 						//fmt.Println(",")
-						fmt.Fprintf(fo, ",")
+						//fmt.Fprintf(fo, ",")
 					}
 					//fmt.Println(results)
-					fmt.Fprintf(fo, results)
+					//fmt.Fprintf(fo, results)
 				}
 				//fmt.Println("]")
-				fmt.Fprintf(fo, "]")
+				//fmt.Fprintf(fo, "]")
 			}
 
 			if err != nil {
 				log.Fatalf("[ERROR] Output to JSON failed: %v", err)
 			}
 
-			fmt.Println(string(results))
+			//fmt.Println(string(results))
+
+			//fmt.Fprintf(fo, "]")
 
 			if logLevel >= LOG_INFO {
 				log.Println("[INFO] All assessments complete; shutting down")
